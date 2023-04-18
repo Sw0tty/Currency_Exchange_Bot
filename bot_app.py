@@ -53,20 +53,23 @@ def values_func(message):
 
 @bot.message_handler(content_types=['text'])
 def function_name(message: telebot.types.Message):
-    values = message.text.split(' ')
-    try:
-        if len(values) != 3:
-            raise ConvertException("\t\t• Аргументов должно быть 3")
-    except Exception as e:
-        bot.reply_to(message, f"Причина ошибки:\n{e}")
+    if message.text[0] == '/' and len(message.text) > 1 and message.text[1] != ' ':
+        bot.reply_to(message, f"Простите, я не знаю такой команды")
     else:
+        values = message.text.split(' ')
         try:
-            quote, base, amount = values
-            req_currency = Converter.get_price(quote, base, amount)
-
-            bot.reply_to(message, f"Переведя {amount} {quote} получим: {currency_keys[base][1]}{req_currency}")
+            if len(values) != 3:
+                raise ConvertException("\t\t• Аргументов должно быть 3")
         except Exception as e:
             bot.reply_to(message, f"Причина ошибки:\n{e}")
+        else:
+            try:
+                quote, base, amount = values
+                req_currency = Converter.get_price(quote, base, amount)
+
+                bot.reply_to(message, f"Переведя {amount} {quote} получим: {currency_keys[base][1]}{req_currency}")
+            except Exception as e:
+                bot.reply_to(message, f"Причина ошибки:\n{e}")
 
 
-bot.polling(none_stop=True)
+bot.polling()

@@ -73,16 +73,20 @@ def reaction_on_text(message: telebot.types.Message):
                 req_currency = Converter.get_price(quote, base, amount)
                 # ------Данная проверка меняет окончание при выводе (возможны баги)------
                 if quote == 'рубль':
-                    if amount[-1] in ['2', '3', '4'] and amount not in [str(i) for i in range(12, 15)]:
+                    if amount[-1] in ['2', '3', '4'] and amount[-2::1] not in ['12', '13', '14']:
                         quote = quote[:-1] + "я"  # рубля
-                    elif len(amount) > 1 and amount[-1] in [str(i) for i in range(1, 21)]\
-                            and amount != "1" and amount[-2] == "1":
+                    elif amount == '1' or len(amount) > 1 and amount[-1] == '1'\
+                            and amount[-2] in [str(i) for i in range(2, 10)]:
+                        pass
+                    elif amount[-1] in [str(i) for i in range(0, 10)] and amount != '1':
                         quote = quote[:-1] + "ей"  # рублей
                 elif quote == 'доллар':
-                    if amount[-1] in ['2', '3', '4'] and amount not in [str(i) for i in range(12, 15)]:
+                    if amount[-1] in ['2', '3', '4'] and amount[-2::1] not in ['12', '13', '14']:
                         quote = quote + "а"  # доллара
-                    elif len(amount) > 1 and amount[-1] in [str(i) for i in range(1, 21)]\
-                            and amount != "1" and amount[-2] == "1":
+                    elif amount == '1' or len(amount) > 1 and amount[-1] == '1'\
+                            and amount[-2] in [str(i) for i in range(2, 10)]:
+                        pass
+                    elif amount[-1] in [str(i) for i in range(0, 10)] and amount != '1':
                         quote = quote + "ов"  # долларов
                 # ------------------------------------------------------------------------
                 bot.reply_to(message, f"Переведя {amount} {quote} получим: {currency_keys[base][1]}{req_currency}")
@@ -90,4 +94,4 @@ def reaction_on_text(message: telebot.types.Message):
                 bot.reply_to(message, f"Причина ошибки 2:\n{e}")  # Вероятно здесь эта ошибка
 
 
-bot.polling()
+bot.polling(none_stop=True)

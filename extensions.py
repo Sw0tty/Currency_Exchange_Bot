@@ -11,16 +11,21 @@ class ConvertException(Exception):
 
 
 def request_to_api():  # Функция запроса вынесена за класс, так как используется в нескольких командах бота
-    data_req = requests.get(
-        'https://openexchangerates.org/api/latest.json?app_id=13ef20aae02346669c2c35e1e9ea3cac')
-    req_text = json.loads(data_req.content)
-    return req_text
+    try:
+        data_req = requests.get(
+            'https://openexchangerates.org/api/latest.json?app_id=13ef20aae02346669c2c35e1e9ea3cac')
+        req_text = json.loads(data_req.content)
+        return req_text
+    except Exception as e:
+        raise ConvertException(e, "Ошибка сервера")
+    except requests.exceptions:
+        raise ConvertException("Ошибка сервера")
 
 
 class Converter:
     @staticmethod
     def get_price(quote: str, base: str, amount: str):
-        try:
+        # try:
             if quote == base:
                 raise ConvertException(f"\t\t• Введены две одинаковые валюты!")
             try:
@@ -40,7 +45,10 @@ class Converter:
             except ValueError:
                 raise ConvertException(f"\t\t• Введенное значение '{amount}' не получилось преобразовать в число!")
 
-            req_text = request_to_api()  # Делаем запрос валют
+            try:
+                req_text = request_to_api()  # Делаем запрос валют
+            except requests.exceptions.ConnectTimeout:
+                raise ConvertException("Ошибка сервера")
 
             # ------Выбираем метод перевода------
             if inter_quote == 'RUB':
@@ -50,5 +58,8 @@ class Converter:
                 result = round(req_text['rates'][inter_base] * amount, 6)
                 return result
             # -----------------------------------
-        except Exception as e:
-            raise ConvertException(e)
+        # except ConvertException as e:
+        #     raise ConvertException(e)
+        #
+        # except Exception:
+        #     raise requests.exceptions.ConnectTimeout("Ошибка сервера")

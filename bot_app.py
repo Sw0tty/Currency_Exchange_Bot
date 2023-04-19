@@ -3,7 +3,7 @@
 """
 import telebot
 from config import TOKEN, currency_keys
-from extensions import ConvertException, Converter, request_to_api
+from extensions import Converter, request_to_api, UserInputException
 
 
 bot = telebot.TeleBot(TOKEN)
@@ -14,7 +14,7 @@ bot = telebot.TeleBot(TOKEN)
 @bot.message_handler(commands=['start'])
 def start_func(message):
     bot.reply_to(message, f"Здравствуйте! Меня зовут, {bot.user.first_name},"
-                          f"и я помогу вам с переведом одной валюты в другую.\n"
+                          f"и я помогу вам с переводом одной валюты в другую.\n"
                           f"Чтобы ознакомится с моими командами, введите: /help")
 
 
@@ -56,42 +56,49 @@ def rates_func(message):
 @bot.message_handler(content_types=['text'])
 def reaction_on_text(message: telebot.types.Message):
     if message.text[0] == '/' and len(message.text) > 1 and message.text[1] != ' ':  # Проверка введенной команды
-        bot.reply_to(message, f"Простите, я не знаю такой команды")
-    else:
-        while ',' in message.text:  # Если пользователь введет так: quote, base, amount
-            message.text = message.text.replace(',', '')
+        return bot.reply_to(message, f"Простите, я не знаю такой команды")
 
-        values = list(map(str.lower, message.text.split(' ')))  # Разбивка и привидение к нижнему регистру
-        try:
-            if len(values) != 3:  # Считаем параметры
-                raise ConvertException("\t\t• Параметров должно быть 3")
-        except Exception as e:
-            bot.reply_to(message, f"Причина ошибки 1:\n{e}")
-        else:
-            try:
-                quote, base, amount = values
-                req_currency = Converter.get_price(quote, base, amount)
-                # ------Данная проверка меняет окончание при выводе (возможны баги)------
-                if quote == 'рубль':
-                    if amount[-1] in ['2', '3', '4'] and amount[-2::1] not in ['12', '13', '14']:
-                        quote = quote[:-1] + "я"  # рубля
-                    elif amount == '1' or len(amount) > 1 and amount[-1] == '1'\
-                            and amount[-2] in [str(i) for i in range(2, 10)]:
-                        pass
-                    elif amount[-1] in [str(i) for i in range(0, 10)] and amount != '1':
-                        quote = quote[:-1] + "ей"  # рублей
-                elif quote == 'доллар':
-                    if amount[-1] in ['2', '3', '4'] and amount[-2::1] not in ['12', '13', '14']:
-                        quote = quote + "а"  # доллара
-                    elif amount == '1' or len(amount) > 1 and amount[-1] == '1'\
-                            and amount[-2] in [str(i) for i in range(2, 10)]:
-                        pass
-                    elif amount[-1] in [str(i) for i in range(0, 10)] and amount != '1':
-                        quote = quote + "ов"  # долларов
-                # ------------------------------------------------------------------------
-                bot.reply_to(message, f"Переведя {amount} {quote} получим: {currency_keys[base][1]}{req_currency}")
-            except Exception as e:
-                bot.reply_to(message, f"Причина ошибки 2:\n{e}")  # Вероятно здесь эта ошибка
+    # ---Убираем возможные запятые и меняем, если число разделено не точкой---
+    replace_str = ""
+    for i, j in enumerate(message.text):
+        if j == ',' and message.text[i - 1].isdigit():
+            replace_str += '.'
+        if j == ',':
+            continue
+        replace_str += j
+    message.text = replace_str
+    # ---------------------------------------------------------------------
+
+    values = list(map(str.lower, message.text.split(' ')))  # Разбивка и привидение к нижнему регистру
+
+    try:
+        if len(values) != 3:  # Считаем параметры
+            raise UserInputException("\t\t• Параметров должно быть 3")
+        quote, base, amount = values
+        req_currency = Converter.get_price(quote, base, amount)
+
+        # ------Данная проверка меняет окончание при выводе (возможны баги)------
+        if quote == 'рубль':
+            if amount[-1] in ['2', '3', '4'] and amount[-2::1] not in ['12', '13', '14']:
+                quote = quote[:-1] + "я"  # рубля
+            elif amount == '1' or len(amount) > 1 and amount[-1] == '1'\
+                    and amount[-2] in [str(i) for i in range(2, 10)]:
+                pass
+            elif amount[-1] in [str(i) for i in range(0, 10)] and amount != '1':
+                quote = quote[:-1] + "ей"  # рублей
+        elif quote == 'доллар':
+            if amount[-1] in ['2', '3', '4'] and amount[-2::1] not in ['12', '13', '14']:
+                quote = quote + "а"  # доллара
+            elif amount == '1' or len(amount) > 1 and amount[-1] == '1'\
+                    and amount[-2] in [str(i) for i in range(2, 10)]:
+                pass
+            elif amount[-1] in [str(i) for i in range(0, 10)] and amount != '1':
+                quote = quote + "ов"  # долларов
+        # ------------------------------------------------------------------------
+
+        bot.reply_to(message, f"Переведя {amount} {quote} получим: {currency_keys[base][1]}{req_currency}")
+    except Exception as e:
+        bot.reply_to(message, f"Причина ошибки:\n{e}")
 
 
-bot.polling(none_stop=True)
+bot.infinity_polling()

@@ -69,7 +69,7 @@ def reaction_on_text(message: telebot.types.Message):
     message.text = replace_str
     # ---------------------------------------------------------------------
 
-    values = list(map(str.lower, message.text.split(' ')))  # Разбивка и привидение к нижнему регистру
+    values = message.text.lower().split(' ')  # Разбивка и привидение к нижнему регистру
 
     try:
         if len(values) != 3:  # Считаем параметры
@@ -97,6 +97,7 @@ def reaction_on_text(message: telebot.types.Message):
         # ------------------------------------------------------------------------
 
         bot.reply_to(message, f"Переведя {amount} {quote} получим: {currency_keys[base][1]}{req_currency}")
+
     except Exception as e:
         bot.reply_to(message, f"Причина ошибки:\n{e}")
 

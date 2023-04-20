@@ -4,6 +4,7 @@
 import telebot
 from config import TOKEN, currency_keys
 from extensions import Converter, request_to_api, UserInputException
+import time
 
 
 bot = telebot.TeleBot(TOKEN)
@@ -102,4 +103,10 @@ def reaction_on_text(message: telebot.types.Message):
         bot.reply_to(message, f"Причина ошибки:\n{e}")
 
 
-bot.infinity_polling()
+# Данная конструкция ловит исключение, которое связано с ожиданием ответа от серверов Telegram
+while True:
+    try:
+        bot.polling(none_stop=True)
+    except Exception as e:
+        print(e)
+        time.sleep(15)

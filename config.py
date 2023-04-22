@@ -2,10 +2,11 @@
 Токен бота и возможные валюты
 """
 import os
+from dotenv import load_dotenv
 
 
-with open(os.path.join(os.getcwd(), 'bot_token', 'token.bin'), 'rb') as file_handler:
-    TOKEN = file_handler.read().decode('ascii')
+load_dotenv()
+TOKEN = os.getenv('TOKEN')
 
 
 currency_keys = {

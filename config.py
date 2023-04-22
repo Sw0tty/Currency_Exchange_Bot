@@ -1,8 +1,12 @@
 """
 Токен бота и возможные валюты
 """
+import os
 
-TOKEN = '6223641882:AAH26i5Ul5CLXkl1zZkpZjx5vNnn7l8TsyE'
+
+with open(os.path.join(os.getcwd(), 'bot_token', 'token.bin'), 'rb') as file_handler:
+    TOKEN = file_handler.read().decode('ascii')
+
 
 currency_keys = {
     'рубль': ('RUB', '₽'),

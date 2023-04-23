@@ -1,12 +1,13 @@
 """
+Bot token and possible currencies /
 Токен бота и возможные валюты
 """
-import os
+from os import getenv
 from dotenv import load_dotenv
 
 
 load_dotenv()
-TOKEN = os.getenv('TOKEN')
+TOKEN = getenv('TOKEN')
 
 
 currency_keys = {

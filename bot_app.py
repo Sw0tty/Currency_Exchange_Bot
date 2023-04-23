@@ -1,26 +1,46 @@
 """
+A file with all the handlers for the bot /
 Файл со всеми обработчиками для бота
 """
 import telebot
 from config import TOKEN, currency_keys
 from extensions import Converter, request_to_api, UserInputException
-import time
+from time import strftime, sleep
+import logging
+
+
+logging.basicConfig(level=logging.INFO, filename="bot_log.log", filemode="a",
+                    format="%(asctime)s %(levelname)s %(message)s", encoding="utf8")
+
+today_date = strftime("%Y-%m-%d")
+
+with open('bot_log.log', 'r') as logs:
+    check_date = logs.readline()
+    if today_date not in check_date:
+        with open('bot_log.log', 'a') as logs:
+            logs.write(f"------------{today_date}------------\n")
 
 
 bot = telebot.TeleBot(TOKEN)
 
 
-# Каждая команда расписана отдельно, для наглядности и чтобы каждая команда
-# была в своем обработчике, а не свалено все в кучу
+def input_com_log(message):
+    logging.info(f"""Input command: '{message}'""")
+
+
+# Each command is painted separately, for clarity and so that each command is in its own handler,
+# and not everything is piled up in a heap
 @bot.message_handler(commands=['start'])
 def start_func(message):
+    input_com_log(message.text)
     bot.reply_to(message, f"Здравствуйте! Меня зовут, {bot.user.first_name},"
                           f"и я помогу вам с переводом одной валюты в другую.\n"
                           f"Чтобы ознакомится с моими командами, введите: /help")
 
 
-@bot.message_handler(commands=['help'])  # Для понимания каждой команды, прочитайте данную команду
+@bot.message_handler(commands=['help'])  # To understand each command, read this command
 def help_func(message):
+    input_com_log(message.text)
     bot.reply_to(message, "У меня есть следующие команды:\n"
                           "\t\t/start - сообщение приветствия\n"
                           "\t\t/values - вывод валют, с которыми я умею работать\n"
@@ -30,6 +50,7 @@ def help_func(message):
 
 @bot.message_handler(commands=['values'])
 def values_func(message):
+    input_com_log(message.text)
     all_currency = ""
     for i, j in currency_keys.items():
         all_currency += "\t\t•" + j[1] + "•\t" + i + "\n"
@@ -38,6 +59,7 @@ def values_func(message):
 
 @bot.message_handler(commands=['tutorial'])
 def tutorial_func(message):
+    input_com_log(message.text)
     bot.reply_to(message, "Для того, чтобы перевести одну валюту в другую, вам нужно написать сообщение типа:\n"
                           "<исходная валюта> <валюта, в которую нужно перевести> <количество исходной валюты>\n"
                           "Например: доллар рубль 20")
@@ -45,6 +67,7 @@ def tutorial_func(message):
 
 @bot.message_handler(commands=['rates'])
 def rates_func(message):
+    input_com_log(message.text)
     all_currency_rate = ""
     req_text = request_to_api()
     for i, j in currency_keys.items():
@@ -56,10 +79,11 @@ def rates_func(message):
 
 @bot.message_handler(content_types=['text'])
 def reaction_on_text(message: telebot.types.Message):
-    if message.text[0] == '/' and len(message.text) > 1 and message.text[1] != ' ':  # Проверка введенной команды
+    if message.text[0] == '/' and len(message.text) > 1 and message.text[1] != ' ':  # Checking the entered command
+        logging.info(f"""Incorrect command: '{message.text}'""")
         return bot.reply_to(message, f"Простите, я не знаю такой команды")
 
-    # ---Убираем возможные запятые и меняем, если число разделено не точкой---
+    # ---We remove possible commas and change them if the number is not separated by a dot---
     replace_str = ""
     for i, j in enumerate(message.text):
         if j == ',' and message.text[i - 1].isdigit():
@@ -70,10 +94,11 @@ def reaction_on_text(message: telebot.types.Message):
     message.text = replace_str
     # ---------------------------------------------------------------------
 
-    values = message.text.lower().split(' ')  # Разбивка и привидение к нижнему регистру
+    values = message.text.lower().split(' ')  # Breakdown and reduction to lowercase
 
     try:
         if len(values) != 3:  # Считаем параметры
+            logging.info(f"""Incorrect parameters: '{message.text}'""")
             raise UserInputException("\t\t• Параметров должно быть 3")
         quote, base, amount = values
         req_currency = Converter.get_price(quote, base, amount)
@@ -98,15 +123,17 @@ def reaction_on_text(message: telebot.types.Message):
         # ------------------------------------------------------------------------
 
         bot.reply_to(message, f"Переведя {amount} {quote} получим: {currency_keys[base][1]}{req_currency}")
+        logging.info(f"Successful Transaction with {values} parameters")
 
-    except Exception as e:
-        bot.reply_to(message, f"Причина ошибки:\n{e}")
+    except Exception as err:
+        bot.reply_to(message, f"Причина ошибки:\n{err}")
 
 
-# Данная конструкция ловит исключение, которое связано с ожиданием ответа от серверов Telegram
+# This construction catches an exception that is associated with waiting for a response from Telegram servers
 while True:
     try:
         bot.polling(none_stop=True)
-    except Exception as e:
-        print(e)
-        time.sleep(15)
+    except Exception as err:
+        print(err)
+        logging.critical(err)
+        sleep(15)
